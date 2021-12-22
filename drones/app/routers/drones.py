@@ -36,13 +36,7 @@ async def create_drone(
 
       Default value: 1 (*Idle*)
     """
-    dron = Drone(
-        serial_number=drone.serial_number,
-        model=drone.model,
-        weight_limit=drone.weight_limit,
-        battery_capacity=drone.battery_capacity,
-        state=drone.state,
-    )
+    dron = Drone.from_orm(drone)
     session.add(dron)
     await session.commit()
     await session.refresh(dron)
