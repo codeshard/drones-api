@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlmodel import Field
 from enum import Enum, auto
 from app.models import BaseModel
@@ -28,3 +29,11 @@ class Drone(BaseModel, table=True):
     weight_limit: float = Field(..., ge=0, le=500)
     battery_capacity: float = Field(..., ge=0, le=100)
     state: DroneState = DroneState.IDLE
+
+
+class DroneUpdate(BaseModel):
+    serial_number: Optional[str]
+    model: Optional[int]
+    weight_limit: Optional[float]
+    battery_capacity: Optional[float]
+    state: DroneState = Optional[int]
