@@ -1,4 +1,4 @@
+asyncpg==0.25.0
 fastapi==0.70.1
-psycopg2-binary==2.9.2
 sqlmodel==0.0.5
 uvicorn[standard]==0.16.0
