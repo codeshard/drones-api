@@ -1,10 +1,10 @@
 from typing import List
 
-from app.database import engine, get_session
+from app.database import get_session
 from app.models import Drone
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import Session, select
+from sqlmodel import select
 
 router = APIRouter(prefix="/drones", tags=["drones"])
 
@@ -50,9 +50,20 @@ async def create_drone(
 
 
 @router.get("/id", response_model=Drone)
-async def retrieve_drone(id: str) -> Drone:
-    with Session(engine) as session:
-        return session.get(Drone, id)
+async def retrieve_drone(
+    id: str, session: AsyncSession = Depends(get_session)
+) -> Drone:
+    result = await session.execute(select(Drone).where(Drone.id == id))
+    drone = result.scalars().first()
+    return Drone(
+        id=drone.id,
+        serial_number=drone.serial_number,
+        model=drone.model,
+        weight_limit=drone.weight_limit,
+        battery_capacity=drone.battery_capacity,
+        state=drone.state,
+        created_at=drone.created_at,
+    )
 
 
 @router.patch("/id", response_model=Drone)
