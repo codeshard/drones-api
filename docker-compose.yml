@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1
+version: "3.4"
+
+volumes:
+  pg_data: {}
+
+services:
+  postgres:
+    image: postgres:alpine
+    restart: unless-stopped
+    stop_grace_period: "3s"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    env_file: .env
+
+  app:
+    build:
+      context: ./drones
+    volumes:
+      - ./drones:/src/
+    command:
+      - /bin/bash
+      - -c
+      - |
+        uvicorn --host 0.0.0.0 app.main:app --loop asyncio --log-level debug --use-colors --proxy-headers --reload
+    restart: unless-stopped
+    stop_grace_period: "3s"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    env_file: .env
