@@ -49,7 +49,7 @@ async def create_drone(
     return dron
 
 
-@router.get("/{drone_id}/", response_model=Drone)
+@router.get("/{drone_id}", response_model=Drone)
 async def retrieve_drone(
     *, drone_id: str, session: AsyncSession = Depends(get_session)
 ) -> Drone:
@@ -77,9 +77,15 @@ async def update_drone(
     return drone
 
 
-@router.post("/id", response_model=Drone)
-async def delete_drone(id: str) -> Drone:
-    pass
+@router.post("/{drone_id}")
+async def delete_drone(*, drone_id: str, session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(Drone).where(Drone.id == drone_id))
+    drone = result.scalar_one_or_none()
+    if not drone:
+        raise HTTPException(status_code=404, detail="Drone not found")
+    session.delete(drone)
+    await session.commit()
+    return {"ok": True}
 
 
 @router.get("", response_model=List[Drone])
