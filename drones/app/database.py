@@ -6,7 +6,6 @@ settings = get_settings()
 
 engine = create_engine(
     url=settings.database_dsn,
-    connect_args={"check_same_thread": False},
     echo=settings.debug,
 )
 
