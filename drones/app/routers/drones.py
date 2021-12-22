@@ -1,8 +1,8 @@
 from typing import List
 
 from app.database import get_session
-from app.models import Drone
-from fastapi import APIRouter, Depends
+from app.models import Drone, DroneUpdate
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/drones", tags=["drones"])
 
 @router.post("", response_model=Drone)
 async def create_drone(
-    drone: Drone, session: AsyncSession = Depends(get_session)
+    *, drone: Drone, session: AsyncSession = Depends(get_session)
 ) -> Drone:
     """
     Create a drone using the given params
@@ -49,26 +49,32 @@ async def create_drone(
     return dron
 
 
-@router.get("/id", response_model=Drone)
+@router.get("/{drone_id}/", response_model=Drone)
 async def retrieve_drone(
-    id: str, session: AsyncSession = Depends(get_session)
+    *, drone_id: str, session: AsyncSession = Depends(get_session)
 ) -> Drone:
-    result = await session.execute(select(Drone).where(Drone.id == id))
-    drone = result.scalars().first()
-    return Drone(
-        id=drone.id,
-        serial_number=drone.serial_number,
-        model=drone.model,
-        weight_limit=drone.weight_limit,
-        battery_capacity=drone.battery_capacity,
-        state=drone.state,
-        created_at=drone.created_at,
-    )
+    result = await session.execute(select(Drone).where(Drone.id == drone_id))
+    drone = result.scalar_one_or_none()
+    if not drone:
+        raise HTTPException(status_code=404, detail="Drone not found")
+    return drone
 
 
-@router.patch("/id", response_model=Drone)
-async def update_drone(id: str) -> Drone:
-    pass
+@router.patch("/{drone_id}", response_model=Drone)
+async def update_drone(
+    *, drone_id: str, patch: DroneUpdate, session: AsyncSession = Depends(get_session)
+) -> Drone:
+    result = await session.execute(select(Drone).where(Drone.id == drone_id))
+    drone = result.scalar_one_or_none()
+    if not drone:
+        raise HTTPException(status_code=404, detail="Drone not found")
+    patch_data = patch.dict(exclude_unset=True)
+    for key, value in patch_data.items():
+        setattr(drone, key, value)
+    session.add(drone)
+    await session.commit()
+    await session.refresh(drone)
+    return drone
 
 
 @router.post("/id", response_model=Drone)
@@ -77,18 +83,7 @@ async def delete_drone(id: str) -> Drone:
 
 
 @router.get("", response_model=List[Drone])
-async def list_drones(session: AsyncSession = Depends(get_session)) -> List[Drone]:
+async def list_drones(*, session: AsyncSession = Depends(get_session)) -> List[Drone]:
     result = await session.execute(select(Drone))
     drones = result.scalars().all()
-    return [
-        Drone(
-            id=drone.id,
-            serial_number=drone.serial_number,
-            model=drone.model,
-            weight_limit=drone.weight_limit,
-            battery_capacity=drone.battery_capacity,
-            state=drone.state,
-            created_at=drone.created_at,
-        )
-        for drone in drones
-    ]
+    return drones
