@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.settings import get_settings
 from app.database import create_db_and_tables
+from app.routers import drones
 
 settings = get_settings()
 app = FastAPI(debug=settings.debug, title=settings.project_name)
@@ -21,5 +22,8 @@ app.add_middleware(
 
 
 @app.on_event("startup")
-def startup():
-    create_db_and_tables()
+async def startup():
+    await create_db_and_tables()
+
+
+app.include_router(drones.router)
