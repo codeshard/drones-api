@@ -33,8 +33,8 @@ class Drone(BaseModel, table=True):
 
 
 class DroneUpdate(SQLModel):
-    serial_number: Optional[str]
-    model: Optional[int]
-    weight_limit: Optional[float]
-    battery_capacity: Optional[float]
-    state: DroneState = Optional[int]
+    serial_number: Optional[str] = None
+    model: Optional[DroneModel] = None
+    weight_limit: Optional[float] = None
+    battery_capacity: Optional[float] = None
+    state: Optional[DroneState] = None
