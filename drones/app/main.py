@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.settings import get_settings
 from app.database import create_db_and_tables
-from app.routers import drones, medications
+from app.routers import drones, medications, deliveries
 
 settings = get_settings()
 app = FastAPI(
@@ -41,3 +41,4 @@ async def startup():
 
 app.include_router(drones.router)
 app.include_router(medications.router)
+app.include_router(deliveries.router)
