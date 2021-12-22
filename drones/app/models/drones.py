@@ -1,8 +1,9 @@
-from typing import Optional
-from sqlmodel import Field
 from enum import Enum, auto
+from typing import Optional
+
 from app.models import BaseModel
 from sqlalchemy import UniqueConstraint
+from sqlmodel import Field, SQLModel
 
 
 class DroneModel(int, Enum):
@@ -31,7 +32,7 @@ class Drone(BaseModel, table=True):
     state: DroneState = DroneState.IDLE
 
 
-class DroneUpdate(BaseModel):
+class DroneUpdate(SQLModel):
     serial_number: Optional[str]
     model: Optional[int]
     weight_limit: Optional[float]
