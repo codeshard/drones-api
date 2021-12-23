@@ -10,7 +10,7 @@ from sqlmodel import select
 router = APIRouter(prefix="/drones", tags=["drones"])
 
 
-@schedule.scheduled_job("interval", minutes=0.5, id="check-battery-state")
+@schedule.scheduled_job("interval", minutes=30, id="check-battery-state")
 async def check_drones_battery():
     async with AsyncSession(engine) as session:
         result = await session.execute(select(Drone))
@@ -97,7 +97,7 @@ async def delete_drone(*, drone_id: str, session: AsyncSession = Depends(get_ses
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Drone not found"
         )
-    session.delete(drone)
+    await session.delete(drone)
     await session.commit()
     return {"ok": True}
 
