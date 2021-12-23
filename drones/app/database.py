@@ -6,7 +6,11 @@ from app.settings import get_settings
 
 settings = get_settings()
 
-engine = create_async_engine(settings.database_dsn, echo=True, future=True)
+engine = create_async_engine(
+    settings.database_dsn, echo=True, future=True, pool_pre_ping=True
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 async def create_db_and_tables():
