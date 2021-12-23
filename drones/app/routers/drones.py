@@ -1,12 +1,27 @@
 from typing import List
 
-from app.database import get_session
-from app.models import Drone, DroneUpdate
-from fastapi import APIRouter, Depends, HTTPException
+from app.database import engine, get_session
+from app.jobs import schedule
+from app.models import Auditory, Drone, DroneUpdate
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 router = APIRouter(prefix="/drones", tags=["drones"])
+
+
+@schedule.scheduled_job("interval", minutes=0.5, id="check-battery-state")
+async def check_drones_battery():
+    async with AsyncSession(engine) as session:
+        result = await session.execute(select(Drone))
+        drones = result.scalars().all()
+        for drone in drones:
+            auditory = Auditory(
+                drone_id=drone.id, battery_capacity=drone.battery_capacity
+            )
+            session.add(auditory)
+            await session.commit()
+            await session.refresh(auditory)
 
 
 @router.post("", response_model=Drone)
@@ -15,7 +30,6 @@ async def create_drone(
 ) -> Drone:
     """
     Create a drone using the given params
-
     * **Serial Number**: Alphanumeric identification of the drone, unique value.
     * Model: integer value, to choose between.
         * 1 - Lightweight
@@ -50,7 +64,9 @@ async def retrieve_drone(
     result = await session.execute(select(Drone).where(Drone.id == drone_id))
     drone = result.scalar_one_or_none()
     if not drone:
-        raise HTTPException(status_code=404, detail="Drone not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Drone not found"
+        )
     return drone
 
 
@@ -61,7 +77,9 @@ async def update_drone(
     result = await session.execute(select(Drone).where(Drone.id == drone_id))
     drone = result.scalar_one_or_none()
     if not drone:
-        raise HTTPException(status_code=404, detail="Drone not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Drone not found"
+        )
     patch_data = patch.dict(exclude_unset=True)
     for key, value in patch_data.items():
         setattr(drone, key, value)
@@ -76,7 +94,9 @@ async def delete_drone(*, drone_id: str, session: AsyncSession = Depends(get_ses
     result = await session.execute(select(Drone).where(Drone.id == drone_id))
     drone = result.scalar_one_or_none()
     if not drone:
-        raise HTTPException(status_code=404, detail="Drone not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Drone not found"
+        )
     session.delete(drone)
     await session.commit()
     return {"ok": True}
