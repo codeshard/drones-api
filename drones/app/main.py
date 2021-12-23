@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.settings import get_settings
 from app.database import create_db_and_tables
 from app.routers import drones, medications, deliveries
+from app.jobs import schedule
 
 settings = get_settings()
 app = FastAPI(
@@ -37,6 +38,16 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup():
     await create_db_and_tables()
+
+
+@app.on_event("startup")
+def start_scheduler():
+    schedule.start()
+
+
+@app.on_event("shutdown")
+async def stop_scheduler():
+    schedule.shutdown()
 
 
 app.include_router(drones.router)
