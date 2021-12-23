@@ -1,7 +1,6 @@
 from typing import List
-
 from app.database import get_session
-from app.models import Delivery, Medication, DeliveryCreate, Drone
+from app.models import Delivery, DeliveryCreate, Drone, Medication, DroneState
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -19,12 +18,12 @@ async def create_delivery(
     if drone.state not in [1, 2]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"The drone state {drone.state} is not allowed to execute deliveries!",
+            detail=f"The drone with ID {drone.id} and state {drone.state} is not allowed to execute deliveries!",
         )
-    if drone.battery_level < 25:
+    if drone.battery_capacity < 25:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"The drone battery level {drone.battery_level} is to low to be loaded!",
+            detail=f"The drone battery level {drone.battery_capacity} is to low to be loaded!",
         )
     for medication in deliver.medications:
         result = await session.execute(
@@ -43,7 +42,7 @@ async def create_delivery(
     await session.commit()
     await session.refresh(delivery)
 
-    drone.state = 3
+    drone.state = DroneState.LOADED
     session.add(drone)
     await session.commit()
     await session.refresh(drone)
@@ -59,3 +58,31 @@ async def create_delivery(
         await session.refresh(medication)
 
     return delivery
+
+
+@router.get("/medications/{drone_id}", response_model=List[Medication])
+async def medications_by_drone(
+    drone_id: str, session: AsyncSession = Depends(get_session)
+) -> List[Medication]:
+    result = await session.execute(select(Drone).where(Drone.id == drone_id))
+    drone = result.scalar_one_or_none()
+    if drone.state not in [3, 4]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"The drone with ID {drone_id} is not loaded or delivering!",
+        )
+
+    result = await session.execute(
+        select(Delivery).where(Delivery.drone_id == drone_id)
+    )
+    delivery = result.scalar_one_or_none()
+    if not delivery:
+        raise HTTPException(
+            status_code=404,
+            detail=f"The drone with ID: {drone_id} has no active deliveries",
+        )
+    result = await session.execute(
+        select(Medication).where(Medication.delivery_id == delivery.id)
+    )
+    medication_list = result.scalars().all()
+    return medication_list
