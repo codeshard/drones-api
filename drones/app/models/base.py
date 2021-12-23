@@ -36,6 +36,7 @@ class Drone(BaseModel, table=True):
     battery_capacity: float = Field(..., ge=0, le=100)
     state: DroneState = DroneState.IDLE
     deliveries: List["Delivery"] = Relationship(back_populates="drone")
+    auditories: List["Auditory"] = Relationship(back_populates="drone")
 
 
 class DroneCreate(SQLModel):
@@ -89,3 +90,9 @@ class MedicationUpdate(SQLModel):
     weigth: Optional[float] = Field(..., gt=0)
     code: Optional[str] = None
     image: Optional[str]
+
+
+class Auditory(BaseModel, table=True):
+    drone_id: Optional[uuid.UUID] = Field(default=None, foreign_key="drones.id")
+    drone: Optional[Drone] = Relationship(back_populates="auditories")
+    battery_capacity: float = Field(...)
