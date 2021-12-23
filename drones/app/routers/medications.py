@@ -71,7 +71,7 @@ async def delete_medication(
         raise HTTPException(
             status_code=404, detail=f"Medication {medication_id} not found"
         )
-    session.delete(medication)
+    await session.delete(medication)
     await session.commit()
     return {"ok": True}
 
