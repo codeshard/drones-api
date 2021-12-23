@@ -1,9 +1,10 @@
 from typing import List
+
 from app.database import get_session
-from app.models import Delivery, DeliveryCreate, Drone, Medication, DroneState
+from app.models import Delivery, DeliveryCreate, Drone, DroneState, Medication
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import and_, or_, select
 
 router = APIRouter(prefix="/deliveries", tags=["deliveries"])
 
@@ -34,7 +35,7 @@ async def create_delivery(
     if delivery_weight > drone.weight_limit:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"The medications weight {delivery_weight}gr is greater than the drone maximum weight {drone.weight_limit}gr!",
+            detail=f"The medications weight {delivery_weight}gr is greater than the drone maximum weight {drone.weight_limit}gr!",  # noqa
         )
 
     delivery = Delivery.from_orm(deliver)
@@ -86,3 +87,22 @@ async def medications_by_drone(
     )
     medication_list = result.scalars().all()
     return medication_list
+
+
+@router.get("/drones-availables", response_model=List[Drone])
+async def list_available_drones(
+    *, session: AsyncSession = Depends(get_session)
+) -> List[Drone]:
+    result = await session.execute(
+        select(Drone).where(
+            and_(
+                Drone.battery_capacity >= 25,
+                or_(
+                    Drone.state == DroneState.IDLE,
+                    Drone.state == DroneState.LOADING,
+                ),
+            )
+        )
+    )
+    drones = result.scalars().all()
+    return drones
