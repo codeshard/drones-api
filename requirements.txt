@@ -1,0 +1,9 @@
+aiosqlite==0.17.0
+apscheduler==3.8.1
+asyncpg==0.25.0
+fastapi==0.70.1
+psycopg2-binary==2.9.2
+pytest==6.2.5
+requests==2.26.0
+sqlmodel==0.0.5
+uvicorn[standard]==0.16.0
